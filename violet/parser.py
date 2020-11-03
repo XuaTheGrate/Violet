@@ -51,6 +51,7 @@ class VioletParser(Parser):
 	@_("break_stmt EOS")
 	@_("continue_stmt EOS")
 	@_("control")
+	@_("throw_stmt")
 	def stmt(self, p):
 		return p[0]
 
@@ -315,6 +316,7 @@ class VioletParser(Parser):
 		return ast.IfControl(p)
 
 	@_("for_stmt")
+	@_("try_catch_finally")
 	def control(self, p):
 		return p[0]
 
@@ -347,7 +349,28 @@ class VioletParser(Parser):
 
 	@_("param_list LAMBDA_SEP expr %prec lambda")
 	def lambda_expr(self, p):
-		return ast.Lambda(p)	
+		return ast.Lambda(p)
+
+	@_("CATCH PAREN_OPEN name COLON typ PAREN_CLOSE block")
+	def catch(self, p):
+		return ast.Catch(p)
+
+	@_("catch_list catch")
+	@_("catch")
+	def catch_list(self, p):
+		if len(p) == 2:
+			return [*p.catch_list, p.catch]
+		return [p.catch]
+
+	@_("TRY block catch_list")
+	@_("TRY block FINALLY block")
+	@_("TRY block catch_list FINALLY block")
+	def try_catch_finally(self, p):
+		return ast.TryControl(p)
+
+	@_("THROW expr EOS")
+	def throw_stmt(self, p):
+		return ast.Throw(p)
 
 	def error(self, t):
 		if not t:

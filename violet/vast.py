@@ -257,7 +257,6 @@ class FunctionCall(VioletASTBase):
 		name = self.name.get_top_level_name()
 		obj = runner.get_current_scope().get_var(name)
 		attrs = self.name.transform_to_string().split('.')[1:]
-		# print(name, obj, attrs)
 		for attr in attrs:
 			try:
 				obj = getattr(obj, attr)
@@ -265,24 +264,20 @@ class FunctionCall(VioletASTBase):
 				raise HasNoAttribute(obj, attr)
 
 		args = self.args
-		# print(obj, args)
-		# print([o.eval(runner) for o in args])
 		transformed = [o.eval(runner) for o in args]
+
 		viobj = getattr(obj, '__self__', None)
 		if viobj is not None:
 			viobj = issubclass(viobj, objects.Object)
-		# print(viobj, isinstance(obj, objects.Function), hasattr(obj, '_0_identifies_as_violet'))
+
 		if not viobj and not isinstance(obj, objects.Function) and not hasattr(obj, '_0_identifies_as_violet'):
-			# print(transformed)
 			value = obj(*transformed)
 		else:
-			# print(transformed)
 			if isinstance(obj, objects.Function):
 				obj(transformed, runner=runner)
 				value = obj.reset_state()
 			else:
 				value = obj(transformed, runner=runner)
-		# print(value)
 		return value
 
 class Return(VioletASTBase):
@@ -366,6 +361,38 @@ class LoopControl(Control):
 class SwitchControl(Control):
 	pass  # todo
 
+class TryControl(Control):
+	__slots__ = "block", "catch_list", "finally_block"
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.block = prod.block if len(prod) == 3 else prod.block0
+		if hasattr(prod, "FINALLY"):
+			self.finally_block = prod.block1
+		else:
+			self.finally_block = None
+
+		self.catch_list = prod.catch_list
+
+	def eval(self, runner, func):
+		with runner.new_scope():
+			try:
+				runner.exec_function_body(self.block, func)
+			except RuntimeException as e:
+				for catcher in self.catch_list:
+					typ = catcher.exception_type.eval(runner)
+					typ = typ._actual_pytype
+
+					if isinstance(e, typ):
+						catcher.eval(runner, func, e)
+
+					break
+
+			finally:
+				if self.finally_block is not None:
+					with runner.new_scope():
+						runner.exec_function_body(self.finally_block, func)
+
+
 class NilOrElse(Control):
 	__slots__ = ('expr0', 'expr1')
 
@@ -422,6 +449,30 @@ class Else(Control):
 	def eval(self, runner, func):
 		with runner.new_scope():
 			runner.exec_function_body(self.body, func)
+
+class Catch(Control):
+	__slots__ = "body", "exception_name", "exception_type"
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.body = prod.block
+		self.exception_name = prod.name
+		self.exception_type = prod.typ
+
+	def eval(self, runner, func, exception):
+		with runner.new_scope():
+			runner.get_current_scope().set_var(self.exception_name, exception)
+			runner.exec_function_body(self.body, func)
+
+class Throw(Control):
+	__slots__ = "error",
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.error = prod.expr
+
+	def eval(self, runner, func):
+		exception = self.error.eval(runner)
+		raise exception.obj
 
 class Operator:
 	__slots__ = ()

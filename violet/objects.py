@@ -1,5 +1,4 @@
 import inspect
-from violet.errors import *
 from violet._util import IndexableNamespace, identify_as_violet
 
 # __all__ = ['Module']
@@ -107,6 +106,28 @@ class ThinPythonObjectWrapper:
 
 	def __str__(self):
 		return str(self.obj)
+
+class ThinPythonTypeWrapper:
+	def __init__(self, typ):
+		self.type = typ
+
+	def __repr__(self):
+		return 'PyType_'+self.type.__name__
+
+	def __getattr__(self, name):
+		if name == '__repr__':
+			return super().__getattribute__(name)
+
+		if name == "_actual_pytype":
+			return self.__getattribute__("type")
+
+		return getattr(self.type, name)
+
+	def __call__(self, *args, **kwargs):
+		return ThinPythonObjectWrapper(self.type(*args, **kwargs))
+
+	def __str__(self):
+		return str(self.type)
 
 class Module(Object):
 	def __init__(self, module):
@@ -317,4 +338,6 @@ class Lambda(Function):
 		self.lineno = lineno
 		self._return = None
 		self._return_flag = None
-		self.return_type = None		
+		self.return_type = None
+
+from .errors import * # put this at the bottom to avoid circular imports

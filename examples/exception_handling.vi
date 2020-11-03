@@ -1,0 +1,17 @@
+import { * } from std;
+import { * } from std.errors;
+
+fun main(argv: List[String]): Void {
+    try {
+        throw ValueException("a");
+    } catch (aa: ValueException) {
+        print("1");
+        print(aa -> String);
+    } catch (aa: RuntimeException) { // all exceptions derive from RuntimeExceptions, so catch this last.
+        print("2");
+        print(aa -> String);
+    }
+    finally {
+        print("3");
+    }
+}

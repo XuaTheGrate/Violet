@@ -97,7 +97,10 @@ class Scope:
 	def set_var(self, identifier, value, *, const=False):
 		# print(self.hash, ": assigning", identifier, value)
 		if not isinstance(value, (objects.Object, objects.ThinPythonObjectWrapper)):
-			value = objects.ThinPythonObjectWrapper(value)
+			if isinstance(value, type):
+				value = objects.ThinPythonTypeWrapper(value)
+			else:
+				value = objects.ThinPythonObjectWrapper(value)
 		# print("assigning", identifier, "to", value, "as const?", const)
 		if self.is_var_assigned(identifier, False):
 			print(f"WARN: shadowing variable {identifier.transform_to_string()!r}")
@@ -148,7 +151,7 @@ class Runner:
 		try:
 			# print(module.body)
 			self.exec_module(module)
-		except errors.Panic as e:
+		except Panic as e:
 			print("FATAL: system error occured:", e, file=sys.stderr)
 			sys.exit(9)
 		except StatementError as e:
@@ -156,6 +159,9 @@ class Runner:
 				raise
 			print(f"ERROR:{e.stmt.lineno}: {e}")
 			sys.exit(1)
+
+		except RuntimeException as e:
+			print(f"Exception: {e.stmt.lineno} {e.message}")
 		# print(self.get_current_scope())
 		# pprint.pprint(self.scopes)
 		# return self
@@ -168,7 +174,7 @@ class Runner:
 	@property
 	def argv(self):
 		# TODO: sys.argv
-		return ast.Primitive(IndexableNamespace(value=[ast.Primitive(IndexableNamespace(value='"a"',lineno=main.lineno),objects.String)],lineno=main.lineno),objects.List).eval(self)
+		return ast.Primitive(IndexableNamespace(value=[ast.Primitive(IndexableNamespace(value='"a"',lineno=-1),objects.String)],lineno=-1),objects.List).eval(self)
 
 	def run(self):
 		try:
@@ -250,7 +256,7 @@ class Runner:
 				else:
 					raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
 			except Exception as e:
-				if isinstance(e, (StatementError, _Exit)):
+				if isinstance(e, (StatementError, _Exit, RuntimeException)):
 					raise
 				raise StatementError(statement, str(e))
 

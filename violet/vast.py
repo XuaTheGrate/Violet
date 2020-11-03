@@ -374,23 +374,23 @@ class TryControl(Control):
 		self.catch_list = prod.catch_list
 
 	def eval(self, runner, func):
-		with runner.new_scope():
-			try:
+		try:
+			with runner.new_scope():
 				runner.exec_function_body(self.block, func)
-			except RuntimeException as e:
-				for catcher in self.catch_list:
-					typ = catcher.exception_type.eval(runner)
-					typ = typ._actual_pytype
+		except RuntimeException as e:
+			for catcher in self.catch_list:
+				typ = catcher.exception_type.eval(runner)
+				typ = typ._actual_pytype
 
-					if isinstance(e, typ):
-						catcher.eval(runner, func, e)
+				if isinstance(e, typ):
+					catcher.eval(runner, func, e)
 
-					break
+				break
 
-			finally:
-				if self.finally_block is not None:
-					with runner.new_scope():
-						runner.exec_function_body(self.finally_block, func)
+		finally:
+			if self.finally_block is not None:
+				with runner.new_scope():
+					runner.exec_function_body(self.finally_block, func)
 
 
 class NilOrElse(Control):

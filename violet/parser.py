@@ -51,7 +51,7 @@ class VioletParser(Parser):
 	@_("break_stmt EOS")
 	@_("continue_stmt EOS")
 	@_("control")
-	@_("throw_stmt")
+	@_("throw_stmt EOS")
 	def stmt(self, p):
 		return p[0]
 
@@ -368,7 +368,7 @@ class VioletParser(Parser):
 	def try_catch_finally(self, p):
 		return ast.TryControl(p)
 
-	@_("THROW expr EOS")
+	@_("THROW expr")
 	def throw_stmt(self, p):
 		return ast.Throw(p)
 

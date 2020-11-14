@@ -35,4 +35,4 @@ class RuntimeException(Exception, Object):
 			return Boolean(True)
 
 		else:
-			raise Exception(f"Cannot cast {self.__class__.__name__!r} to {typ.__name__}")
+			raise Exception(f"Cannot cast {self.__class__.__name__!r} to {typ.__name__!r}")

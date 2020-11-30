@@ -62,6 +62,11 @@ class VioletLexer(Lexer):
 
 		DECIMAL,
 		STRING,
+
+		TRY,
+		CATCH,
+		FINALLY,
+		THROW
 	}
 	ignore_comment = r"//.*"
 
@@ -122,6 +127,11 @@ class VioletLexer(Lexer):
 	IDENTIFIER['else'] = ELSE
 	IDENTIFIER['for'] = FOR
 	IDENTIFIER['in'] = IN
+
+	IDENTIFIER['try'] = TRY
+	IDENTIFIER['catch'] = CATCH
+	IDENTIFIER['finally'] = FINALLY
+	IDENTIFIER['throw'] = THROW
 
 	# BINARY = r'0b[01]+'
 	DECIMAL = r'[0-9]+'
